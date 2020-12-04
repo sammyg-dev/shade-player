@@ -6,8 +6,8 @@
 *
 *
 ********************************************************************************************/
-#include "include/raylib-cpp.hpp"
 #include <cmath>
+#include <raylib.h>
 using namespace std;
 
 #if defined(PLATFORM_DESKTOP)
@@ -22,18 +22,17 @@ int main(void)
     const int screenWidth = 1920;
     const int screenHeight = 1080;
 
-    raylib::Window w(screenWidth, screenHeight, "raylib-cpp sandbox");
+    InitWindow(screenWidth, screenHeight, "raylib-cpp sandbox");
     bool pause = false;             // Movement pause
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
     //----------------------------------------------------------
     //raylib::Shader shader = LoadShader(0, TextFormat("resources/driveHome.fs", GLSL_VERSION));
-    raylib::Shader shader = raylib::Shader::Load("", "resources/driveHome.fs");
+    Shader shader = LoadShader("", "resources/driveHome.fs");
     float iTime = 0.0f;
-    int iTimeLoc = shader.GetLocation("iTime");
-    int iResolutionLoc = shader.GetLocation("iResolution");
+    int iTimeLoc = GetShaderLocation(shader, "iTime");
+    int iResolutionLoc = GetShaderLocation(shader, "iResolution");
     const float iResolution[2] = { (float)screenWidth, (float)screenHeight };
-    shader.SetValue(iResolutionLoc, iResolution, UNIFORM_VEC2);
-    //SetShaderValue(shader, iResolutionLoc, iResolution, UNIFORM_VEC2);
+    SetShaderValue(shader, iResolutionLoc, iResolution, UNIFORM_VEC2);
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
@@ -51,16 +50,16 @@ int main(void)
         BeginDrawing();
         ClearBackground(BLANK);
 
-        shader.BeginShaderMode();
+        BeginShaderMode(shader);
         DrawRectangle(0, 0, screenWidth, screenHeight, WHITE);
-        shader.EndShaderMode();
+        EndShaderMode();
 
         DrawFPS(10, 10);
         EndDrawing();
         //-----------------------------------------------------
     }
 
-    shader.Unload();
+    UnloadShader(shader);
     CloseWindow();
     return 0;
 }
