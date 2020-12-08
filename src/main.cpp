@@ -1,19 +1,18 @@
 /*******************************************************************************************
 *
-*   sammy g sandbox
-*
-*   testing raylib and raylib-cpp
+* Shade Player App main.cpp
+* 
+* Entry point wrapper for the shader player app
 *
 *
 ********************************************************************************************/
 #include "ShadePlayerApp.hpp"
 
-
 using namespace std;
 
 int main(void)
 {
-  shade::ShadePlayerApp app = shade::ShadePlayerApp(1920, 1080, 60);
+  shade::ShadePlayerApp app(1920, 1080, 60);
   app.Init();
 
   // begins app main loop

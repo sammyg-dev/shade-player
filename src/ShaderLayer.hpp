@@ -3,6 +3,7 @@
 #define DEFAULT_ZINDEX 100
 
 #include <raylib.h>
+#include "ILayer.hpp"
 
 namespace shade {
 
@@ -11,14 +12,14 @@ namespace shade {
    *  Specialized Layer class for rendering a post-process (screen) shader
    * 
    */
-  class ShaderLayer {
+  class ShaderLayer : public ILayer {
     public:
       ShaderLayer(){}
       ShaderLayer(Rectangle dimensions){
         m_dimensions = dimensions;
       }
 
-      ~ShaderLayer(){}
+      // ~ShaderLayer(){}
 
       void Init(const char* filePath){
         m_shader = LoadShader("", filePath);
@@ -45,6 +46,8 @@ namespace shade {
       bool m_isActive = true;
       int m_zIndex = DEFAULT_ZINDEX;
       Rectangle m_dimensions;
+
+      virtual ShaderLayer* clone_impl() const override { return new ShaderLayer(*this); }
     private:
       // temp props
       Shader m_shader;
