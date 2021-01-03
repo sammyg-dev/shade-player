@@ -3,9 +3,10 @@
 
 // #include <memory>
 #include <raylib.h>
-#include "Scene.hpp"
-#include "ShaderLayer.hpp"
-#include "Layer.hpp"
+#include "Core/Scene.hpp"
+#include "Core/ShaderLayer.hpp"
+#include "Core/Layer.hpp"
+#include "Audio/AudioPlayer.hpp"
 
 #if defined(PLATFORM_DESKTOP)
     #define GLSL_VERSION            330
@@ -42,7 +43,10 @@ namespace shade {
       void Init(){
  
         InitWindow(m_windowConfig.ScreenWidth, m_windowConfig.ScreenHeight, "Shade Player");
+        InitAudioDevice();        
         SetTargetFPS(m_windowConfig.TargetFPS);
+
+        m_audioPlayer = AudioPlayer();
 
         // temp
         LoadScene();
@@ -61,12 +65,28 @@ namespace shade {
 
       // Main app loop
       void Start(){
+        int count = 0;
+        char** droppedFiles = { 0 };
         while (!WindowShouldClose())
         {
             float deltaTime = GetFrameTime();
             
+            // check for file drop
+            if(IsFileDropped()){
+              droppedFiles = GetDroppedFiles(&count);
+              m_audioPlayer.AddSongs(droppedFiles, count);
+              ClearDroppedFiles();
+            }
+
             // do pause ish later
-            if (IsKeyPressed(KEY_SPACE)) m_pause = !m_pause;
+            if (IsKeyPressed(KEY_SPACE)){
+              auto s = m_audioPlayer.GetState();
+              if(s == PlaybackState::PLAYING){
+                m_audioPlayer.Stop();
+              } else {
+                m_audioPlayer.Play();
+              }
+            }
             //-----------------------------------------------------
 
             ///////////////////////////////
@@ -74,17 +94,39 @@ namespace shade {
             BeginDrawing();
             ClearBackground(BLANK);
 
+
             // todo: layerstack rendering
             m_scene.Render(deltaTime);
 
+            // update loop for audio player (detect sound finish among other ish)
+            m_audioPlayer.Update(deltaTime);
+
+            // temp ui
+            auto songs = m_audioPlayer.GetSongNames();
+            if(songs.size() > 0){
+              DrawText("Dropped files:", 100, 40, 20, DARKGRAY);
+
+              for (auto i = 0; i < songs.size(); i++)
+              {
+                  if (i%2 == 0) DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.5f));
+                  else DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.3f));
+
+                  DrawText(songs[i].c_str(), 120, 100 + 40*i, 10, GRAY);
+              }
+            }
             DrawFPS(10, 10);
+            
             EndDrawing();
             ///////////////////////////////
         }
+        ClearDroppedFiles();
+        CloseAudioDevice();
+        CloseWindow();
       };
     protected:
       bool m_isActive = true;
       Scene m_scene;
+      AudioPlayer m_audioPlayer;
     private:
       //LayerStack m_layerStack;
       WindowConfig m_windowConfig;

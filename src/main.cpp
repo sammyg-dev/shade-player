@@ -12,7 +12,7 @@ using namespace std;
 
 int main(void)
 {
-  shade::ShadePlayerApp app(1920, 1080, 60);
+  shade::ShadePlayerApp app(1920, 1080, 144);
   app.Init();
 
   // begins app main loop
