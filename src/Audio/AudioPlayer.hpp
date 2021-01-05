@@ -4,23 +4,13 @@
 #include <raylib.h>
 #include <vector>
 #include <string>
+#include "AudioTypes.h"
 #include "AudioAnalyzer.hpp"
+#include "../Core/EventEmitter.hpp"
 
 using namespace std;
 
 namespace shade {
-  enum PlaybackState { STOPPED, LOADING, PLAYING, PAUSED, SONG_FINISHED, ERROR };
-  enum LoopState { NONE, SONG, PLAYLIST };
-  struct Artist {
-    string Name;    
-  };
-  struct Song {
-    string Name;
-    Artist* pArtist;
-    string Filepath;
-    float Length;
-  };
-
   /*
    *  AudioPlayer based on raylib's AudioStream
    *  features:
@@ -34,6 +24,8 @@ namespace shade {
         m_samplingRate = 44100.0;
         m_spu = 4096;
         m_audioAnalyzer = AudioAnalyzer();
+
+        BindEvents();
       };
       ~AudioPlayer(){
         if(m_audioData != nullptr){
@@ -42,15 +34,21 @@ namespace shade {
         if(m_audioBuff != nullptr){
           delete [] m_audioBuff;
         }
+
+        if(m_pAudioStream != nullptr){
+          CloseAudioStream(*m_pAudioStream);        
+          delete m_pAudioStream;
+          m_pAudioStream = nullptr;
+        }
         
         m_playlist.clear();
-      };
+      };      
 
       void Update(float deltaTime){
         DrawText(to_string(m_playTime).c_str(), 200, 10, 16, GRAY);
         if(m_state == PLAYING){
           m_playTime += deltaTime;
-          if(IsAudioStreamProcessed(m_audioStream)){
+          if(IsAudioStreamProcessed(*m_pAudioStream)){
             for(int i = 0; i < m_spu; ++i){
               // check for end of song data
               if(m_audioDataCursor > m_audioDataSize){
@@ -61,7 +59,7 @@ namespace shade {
                   ResetPlayTime();
                 } else {
                   m_audioBuff[i] = -100;
-                  m_state = SONG_FINISHED;
+                  m_state = PlaybackState::SONG_FINISHED;
                 }
               } else { // not end, just set data
                 m_audioBuff[i] = m_audioData[m_audioDataCursor];
@@ -77,12 +75,12 @@ namespace shade {
             //   }
             //   m_audioDataCursor += m_spu;
             // }
-            UpdateAudioStream(m_audioStream, m_audioBuff, m_spu);
+            UpdateAudioStream(*m_pAudioStream, m_audioBuff, m_spu);
           }
           // update analyzer
           m_audioAnalyzer.Update(deltaTime, m_audioBuff, m_spu, m_audioDataCursor);
         } else if (m_state == SONG_FINISHED){
-          if(IsAudioStreamProcessed(m_audioStream)){
+          if(IsAudioStreamProcessed(*m_pAudioStream)){
             OnSongFinished();
           }
         }
@@ -91,7 +89,9 @@ namespace shade {
 
       void OnSongFinished(){
         Stop();
-        CloseAudioStream(m_audioStream);
+        CloseAudioStream(*m_pAudioStream);
+        delete m_pAudioStream;
+        m_pAudioStream = nullptr;
         PlayNext();
       }
 
@@ -128,15 +128,16 @@ namespace shade {
         m_audioDataCursor += m_spu;
 
         // begin playing stream from audio buffer
-        m_audioStream = InitAudioStream(m_samplingRate, wave.sampleSize, 1);
-        UpdateAudioStream(m_audioStream, m_audioBuff, m_spu);
-        PlayAudioStream(m_audioStream);
+        m_pAudioStream = new AudioStream(InitAudioStream(m_samplingRate, wave.sampleSize, 1));
+        SetVolume(m_volume); // set audio stream volume
+        UpdateAudioStream(*m_pAudioStream, m_audioBuff, m_spu);
+        PlayAudioStream(*m_pAudioStream);
 
         // init audio analyzer
         m_audioAnalyzer.Init(m_audioBuff, m_spu, m_audioDataSize);
 
         // update plaeyr state
-        if(IsAudioStreamPlaying(m_audioStream)){
+        if(IsAudioStreamPlaying(*m_pAudioStream)){
           m_state = PlaybackState::PLAYING;
           //m_audioAnalyzer.Init();
         } else {
@@ -145,21 +146,21 @@ namespace shade {
       }
       // stops playing, resets play cursor
       void Stop(){
-        StopAudioStream(m_audioStream);
+        StopAudioStream(*m_pAudioStream);
         m_state = PlaybackState::STOPPED;
         ResetPlayTime();
         ResetBuffers();
       }
       // pause playing
       void Pause(){
-        PauseAudioStream(m_audioStream);
+        PauseAudioStream(*m_pAudioStream);
         m_state = PlaybackState::PAUSED;
       }
       // plays next song in playlist
       void PlayNext(){
         if(m_playlist.size() <= 0){
           return;
-        } else if(m_playlist.size() - 1 == m_playlistIndex) {
+        } else if(m_playlist.size() - 1 == (size_t)m_playlistIndex) {
           m_playlistIndex = 0;          
         } else {
           ++m_playlistIndex;
@@ -172,7 +173,18 @@ namespace shade {
         m_state = PlaybackState::PLAYING;
       }
       // update playback volume
-      void SetVolume(){}
+      void SetVolume(float value){
+        float minV = 0.0;
+        float maxV = 1.0;
+        m_volume = max(minV, min(value, maxV));
+        
+
+        // only set if audio stream is valid
+        // this means we must call SetVolume after we init the audio stream
+        if(m_pAudioStream != nullptr){
+          SetAudioStreamVolume(*m_pAudioStream, value);
+        }
+      }
       //////////////////////////////
 
       //////////////////////////////
@@ -204,7 +216,7 @@ namespace shade {
 
       vector<string> GetSongNames(){
         vector<string> v;
-        for(auto i = 0; i < m_playlist.size(); ++i){
+        for(auto i = 0; (size_t)i < m_playlist.size(); ++i){
           v.push_back(m_playlist[i].Filepath);
         }
         return v;
@@ -212,7 +224,7 @@ namespace shade {
 
     protected:      
       // audio stream obj
-      AudioStream m_audioStream;
+      AudioStream* m_pAudioStream = nullptr;
       // samping rate of audio
       float m_samplingRate;
       // samples per update
@@ -253,7 +265,53 @@ namespace shade {
         m_audioDataCursor = 0;
       }
 
+      //////////////////////////////
+      /// Event bindings
+      //////////////////////////////
+      void BindEvents(){
+        EventEmitter::On<PlayClickEvent>([&](PlayClickEvent& e) { OnPlayClick(e); });
+        EventEmitter::On<PauseClickEvent>([&](PauseClickEvent& e) { OnPauseClick(e); });
+        EventEmitter::On<StopClickEvent>([&](StopClickEvent& e) { OnStopClick(e); });
+        EventEmitter::On<PlayNextClickEvent>([&](PlayNextClickEvent& e) { OnPlayNextClick(e); });
+        EventEmitter::On<PlayPrevClickEvent>([&](PlayPrevClickEvent& e) { OnPlayPrevClick(e); });
+        EventEmitter::On<VolumeUpdateEvent>([&](VolumeUpdateEvent& e) { OnVolumeUpdate(e); });
+        EventEmitter::On<GetVolumeEvent>([&](GetVolumeEvent& e) { OnGetVolume(e); });
+        EventEmitter::On<GetPlaybackStateEvent>([&](GetPlaybackStateEvent& e) { OnGetPlaybackState(e); });
+      }
+      // handle play btn click from UI
+      void OnPlayClick(PlayClickEvent e){
+        Play();
+      }
+      // handle pause btn click from UI
+      void OnPauseClick(PauseClickEvent e){
+        Pause();
+      }
+      // handle play btn click from UI
+      void OnStopClick(StopClickEvent e){
+        Stop();
+      }
+      // handle play next btn click from UI
+      void OnPlayNextClick(PlayNextClickEvent e){
+        PlayNext();
+      }
+      // handle play prev btn click from UI
+      void OnPlayPrevClick(PlayPrevClickEvent e){
+        PlayPrev();
+      }
+      // handle volume slider update from UI
+      void OnVolumeUpdate(VolumeUpdateEvent e){
+        printf("Volume in: %f\n", e.Value);
+        SetVolume(e.Value);
+      }
+      void OnGetVolume(GetVolumeEvent& e){
+        e.Value = m_volume;
+      }
+      void OnGetPlaybackState(GetPlaybackStateEvent& e){
+        e.State = m_state;
+      }
+      //////////////////////////////
     private:
+      float m_volume = 1.0;
       bool __you_cant_touch_this = true;
   };
 }

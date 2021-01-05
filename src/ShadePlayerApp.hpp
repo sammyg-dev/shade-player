@@ -37,7 +37,8 @@ namespace shade {
           fps
         };
       }
-      ~ShadePlayerApp(){}
+      ~ShadePlayerApp(){
+      }
 
       // loads resources and initializes objects needed at start
       void Init(){
@@ -46,7 +47,7 @@ namespace shade {
         InitAudioDevice();        
         SetTargetFPS(m_windowConfig.TargetFPS);
 
-        m_audioPlayer = AudioPlayer();
+        m_pAudioPlayer = make_unique<AudioPlayer>();
 
         // temp
         LoadScene();
@@ -74,17 +75,17 @@ namespace shade {
             // check for file drop
             if(IsFileDropped()){
               droppedFiles = GetDroppedFiles(&count);
-              m_audioPlayer.AddSongs(droppedFiles, count);
+              m_pAudioPlayer->AddSongs(droppedFiles, count);
               ClearDroppedFiles();
             }
 
             // do pause ish later
             if (IsKeyPressed(KEY_SPACE)){
-              auto s = m_audioPlayer.GetState();
+              auto s = m_pAudioPlayer->GetState();
               if(s == PlaybackState::PLAYING){
-                m_audioPlayer.Stop();
+                m_pAudioPlayer->Stop();
               } else {
-                m_audioPlayer.Play();
+                m_pAudioPlayer->Play();
               }
             }
             //-----------------------------------------------------
@@ -99,14 +100,14 @@ namespace shade {
             m_scene.Render(deltaTime);
 
             // update loop for audio player (detect sound finish among other ish)
-            m_audioPlayer.Update(deltaTime);
+            m_pAudioPlayer->Update(deltaTime);
 
             // temp ui
-            auto songs = m_audioPlayer.GetSongNames();
+            auto songs = m_pAudioPlayer->GetSongNames();
             if(songs.size() > 0){
               DrawText("Dropped files:", 100, 40, 20, DARKGRAY);
 
-              for (auto i = 0; i < songs.size(); i++)
+              for (auto i = 0; (size_t)i < songs.size(); i++)
               {
                   if (i%2 == 0) DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.5f));
                   else DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.3f));
@@ -126,7 +127,7 @@ namespace shade {
     protected:
       bool m_isActive = true;
       Scene m_scene;
-      AudioPlayer m_audioPlayer;
+      unique_ptr<AudioPlayer> m_pAudioPlayer = nullptr;
     private:
       //LayerStack m_layerStack;
       WindowConfig m_windowConfig;

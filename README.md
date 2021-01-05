@@ -2,6 +2,12 @@
 
 A shader based desktop music visualizer
 
+# Dependencies
+
+- raylib
+- raygui
+- kiss_fft
+
 # Windows + VS Code setup
 
 example tasks.json

@@ -65,11 +65,10 @@ namespace shade {
       }
 
       void Init(short* audioBuff, int spu, int rawSize){
-        float sampleRate = 44100.0; //music.stream.sampleRate;
+        //float sampleRate = 44100.0; //music.stream.sampleRate;
 
-        float hzPerBand = sampleRate / m_fftSamples;
+        //float hzPerBand = sampleRate / m_fftSamples;
 
-        printf("%f bands at Hz Per Band=%f",(m_fftSamples/2)+1, hzPerBand);
         m_fBuff = new float[m_fftSamples];
         m_window = new float[spu];
 

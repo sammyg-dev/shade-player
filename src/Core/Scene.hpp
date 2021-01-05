@@ -6,6 +6,7 @@
 #include "ILayer.hpp"
 #include "ShaderLayer.hpp"
 #include "Layer.hpp"
+#include "../ViewModels/AudioPlayerLayer.hpp"
 
 using namespace std;
 
@@ -34,11 +35,13 @@ namespace shade {
         // }
         // load ish from file later
         
+        // temp layers
         unique_ptr<ILayer> layer = make_unique<ShaderLayer>(rec);
         layer->Init("resources/shaders/driveHome.fs");
         InsertLayer(move(layer));
-        unique_ptr<ILayer> layer2 = make_unique<Layer>(rec);
+        unique_ptr<ILayer> layer2 = make_unique<AudioPlayerLayer>(rec);
         InsertLayer(move(layer2));
+
       }
 
       void Render(float deltaTime){        
