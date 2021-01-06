@@ -45,7 +45,6 @@ namespace shade {
       };      
 
       void Update(float deltaTime){
-        DrawText(to_string(m_playTime).c_str(), 200, 10, 16, GRAY);
         if(m_state == PLAYING){
           m_playTime += deltaTime;
           if(IsAudioStreamProcessed(*m_pAudioStream)){
@@ -158,7 +157,7 @@ namespace shade {
       }
       // plays next song in playlist
       void PlayNext(){
-        if(m_playlist.size() <= 0){
+        if(m_playlist.size() <= 1){
           return;
         } else if(m_playlist.size() - 1 == (size_t)m_playlistIndex) {
           m_playlistIndex = 0;          
@@ -169,8 +168,14 @@ namespace shade {
       }
       // plays previous song in playlist
       void PlayPrev(){
-
-        m_state = PlaybackState::PLAYING;
+        if(m_playlist.size() <= 1){
+            return;
+          } else if(m_playlistIndex == 0) {
+            m_playlistIndex = m_playlist.size() - 1;          
+          } else {
+            --m_playlistIndex;
+          }
+        Play();
       }
       // update playback volume
       void SetVolume(float value){
@@ -198,20 +203,25 @@ namespace shade {
       // adds songs to playlist
       void AddSongs(char** files, int count){
         for(int i = 0; i < count; ++i){
-          // do more things l8r like try parsing artist name and song name
+          // basic file name parse for now
+          string path = files[i];
+          string fileName(path.substr(path.rfind("\\") + 1));
           Song s = {
-            "Unknown",
-            nullptr,
-            files[i]
+            fileName, // do more to find song name l8r
+            nullptr, // and artist info so we can set this
+            path
           };
           m_playlist.push_back(s);
         }        
       }
       // removes songs to playlist
-      void RemoveSongs(){
-        // probs need more cleanup l8r
-        m_playlist.clear();
+      void RemoveSongByIndex(int index){
+        m_playlist.erase(m_playlist.begin() + index);
       }
+
+      // void RemoveSong(Song& song){
+      //   m_playlist.erase(remove(m_playlist.begin(), m_playlist.end(), [song](Song& s){ song.Filepath == s.Filepath;}), m_playlist.end());
+      // }
       //////////////////////////////
 
       vector<string> GetSongNames(){
@@ -277,6 +287,8 @@ namespace shade {
         EventEmitter::On<VolumeUpdateEvent>([&](VolumeUpdateEvent& e) { OnVolumeUpdate(e); });
         EventEmitter::On<GetVolumeEvent>([&](GetVolumeEvent& e) { OnGetVolume(e); });
         EventEmitter::On<GetPlaybackStateEvent>([&](GetPlaybackStateEvent& e) { OnGetPlaybackState(e); });
+        EventEmitter::On<GetPlaylistEvent>([&](GetPlaylistEvent& e) { OnGetPlaylist(e); });
+        EventEmitter::On<RemoveSongByIndexEvent>([&](RemoveSongByIndexEvent& e) { OnRemoveSongByIndex(e); });
       }
       // handle play btn click from UI
       void OnPlayClick(PlayClickEvent e){
@@ -308,6 +320,12 @@ namespace shade {
       }
       void OnGetPlaybackState(GetPlaybackStateEvent& e){
         e.State = m_state;
+      }
+      void OnGetPlaylist(GetPlaylistEvent& e){
+        e.Playlist = m_playlist;// might need to copy ish manually?
+      }
+      void OnRemoveSongByIndex(RemoveSongByIndexEvent& e){
+        RemoveSongByIndex(e.Index);
       }
       //////////////////////////////
     private:

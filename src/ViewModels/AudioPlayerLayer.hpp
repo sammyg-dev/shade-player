@@ -54,9 +54,10 @@ namespace shade {
           float cw = m_dimensions.width / 2;
           float ch = m_dimensions.height - h;
           // bottom bar
-          DrawRectangle(0, m_dimensions.height - h, w, h, BLACK);          
+          DrawRectangle(0, m_dimensions.height - h, w, h, Fade(BLACK, 0.9));          
           // play/pause btn
           GetPlaybackStateEvent currState = { PlaybackState::ERROR };
+          // not sure what the perf is on doing this every update, but "it works"
           EventEmitter::Emit<GetPlaybackStateEvent>(currState);
           if(currState.State == PlaybackState::PLAYING){
             if (GuiButton({cw - 25, ch, 50, 50}, GuiIconText(RICON_PLAYER_PAUSE, ""))) { 
@@ -85,21 +86,80 @@ namespace shade {
           EventEmitter::Emit<GetVolumeEvent>(currVolumeEv);
           float newSliderVal = currVolumeEv.Value;
           string label = to_string((int)(currVolumeEv.Value * 100));
-          newSliderVal = GuiSlider({ cw + 150, ch + 25 - 5, 150, 10}, "", label.c_str(), currVolumeEv.Value, 0, 1.0);
+          newSliderVal = GuiSlider({ cw + 200, ch + 25 - 5, 150, 10}, "", label.c_str(), currVolumeEv.Value, 0, 1.0);
           if(newSliderVal != currVolumeEv.Value){
             VolumeUpdateEvent e = { newSliderVal };
             EventEmitter::Emit<VolumeUpdateEvent>(e);
           }
-          
+          // open files btn (mayb do this l8r, for now just drag&drop)
+          // if (GuiButton({w - 100 , ch, 50, 50}, GuiIconText(RICON_FOLDER_OPEN, ""))) { 
+            
+          // }
+          // playlist show/hide toggle
+          m_showPlaylist = GuiToggle({w - 100 , ch, 100, 50}, "playlist", m_showPlaylist);
+          if(m_showPlaylist){
+            float pw = w / 3;
+            float ph = m_dimensions.height * 2 / 3;
+            Rectangle panelRec = { w - pw, ch - ph, pw, ph };
+            DrawRectangle(panelRec.x,panelRec.y, panelRec.width, panelRec.height, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.9));
+            GetPlaylistEvent playlistEvent = { vector<Song>() };
+            EventEmitter::Emit<GetPlaylistEvent>(playlistEvent);
 
+            m_panelContentRec = { w - pw-1, ch - ph-1, pw, playlistEvent.Playlist.size() * 50 }; // loop and calc
+            //printf("scroll: %f %f\n", m_panelScroll.x, m_panelScroll.y);
+            // panel content
+            BeginScissorMode(panelRec.x, panelRec.y, panelRec.width, panelRec.height);
+            DrawPlaylist(panelRec, playlistEvent.Playlist);
+            EndScissorMode();    
+            //UpdatePanelScroll(panelRec);
+          }        
         }
+      }
 
+      void UpdatePanelScroll(Rectangle &bounds){
+        Vector2 mousePoint = GetMousePosition();
+
+        if (CheckCollisionPointRec(mousePoint, bounds)){
+          float wheel = GetMouseWheelMove();
+          printf("pos.y: %f wheel: %f\n", mousePoint.y, wheel);
+          m_panelScroll.y = wheel;//+= wheel * someScalar;
+          //m_panelScroll.y = max(-m_panelContentRec.height, min((float)0, m_panelScroll.y));
+        }
+      }
+
+      float DrawPlaylist(Rectangle &view, vector<Song> &songs){
+        int i = 0;
+        int pad = 10;
+        float total = 0;
+        for(auto &s : songs) {
+          // if(currentSong == s){
+          //   DrawRectangleLinesEx({view.x, view.y + i*50, view.width, 50}, 1, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_FOCUSED)));  
+          // }
+          int y = view.y + m_panelScroll.y + i*50;
+          int x = view.x + m_panelScroll.x;
+          DrawRectangleLinesEx({x, y, view.width, 50}, 1, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_NORMAL)));
+          // song name label
+          GuiLabel({ x + pad, y, view.width - pad*2, 50}, s.Name.c_str());
+          //DrawText(s.Name.c_str(), view.x + pad, y + 25, 16,  GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+          // remove song btn
+          if(GuiButton({ x + view.width - 30 - pad, y + 25 - 15, 30, 30 }, GuiIconText(RICON_CROSS_SMALL, ""))){
+            RemoveSongByIndexEvent e = { i };
+            EventEmitter::Emit<RemoveSongByIndexEvent>(e);
+          }
+          total += 50;
+          ++i;
+        }
       }
 
     protected:
       bool m_isActive = true;
+      bool m_showPlaylist = true;
       int m_zIndex = DEFAULT_ZINDEX;
       Rectangle m_dimensions;
+
+      // playlist panel state
+      Vector2 m_panelScroll = { 0, 0 };
+      Rectangle m_panelContentRec;
 
       virtual AudioPlayerLayer* clone_impl() const override { return new AudioPlayerLayer(*this); }
     private:

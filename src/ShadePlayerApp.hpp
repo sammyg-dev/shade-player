@@ -102,21 +102,7 @@ namespace shade {
             // update loop for audio player (detect sound finish among other ish)
             m_pAudioPlayer->Update(deltaTime);
 
-            // temp ui
-            auto songs = m_pAudioPlayer->GetSongNames();
-            if(songs.size() > 0){
-              DrawText("Dropped files:", 100, 40, 20, DARKGRAY);
-
-              for (auto i = 0; (size_t)i < songs.size(); i++)
-              {
-                  if (i%2 == 0) DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.5f));
-                  else DrawRectangle(0, 85 + 40*i, m_windowConfig.ScreenWidth, 40, Fade(LIGHTGRAY, 0.3f));
-
-                  DrawText(songs[i].c_str(), 120, 100 + 40*i, 10, GRAY);
-              }
-            }
-            DrawFPS(10, 10);
-            
+            DrawFPS(10, 10);            
             EndDrawing();
             ///////////////////////////////
         }
