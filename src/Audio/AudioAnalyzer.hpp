@@ -110,7 +110,7 @@ namespace shade {
         for (int i=1;i<m_fftSamples/2;i++) {
             float height=10*log((m_freqs[i].r*m_freqs[i].r)/m_fftSamples);  //10* not 20* because no sqrt of magnitude calc
             height=(height<0)?0:height;  //Clamp negative values to zero -- what is significance of negative besides really quiet?
-            DrawRectangle(i*(barwidth+1),850-height,barwidth,height,BLUE);
+            DrawRectangle(i*(barwidth+1),850-height,barwidth,height,GREEN);
             smoothbins[i]=height;
             if ( (dots[i].Value<smoothbins[i]) || (m_frameCounter-dots[i].Timestamp>ttl) ) {
                 dots[i].Value=smoothbins[i];
@@ -118,6 +118,8 @@ namespace shade {
             }
             DrawLine(i*(barwidth+1),850-dots[i].Value,i*(barwidth+1)+barwidth,850-dots[i].Value,WHITE);
         }
+        FFTUpdateEvent e = { smoothbins, m_fftSamples/2 + 1, pAudioBuff };
+        EventEmitter::Emit<FFTUpdateEvent>(e);
 
         int rightbin=1, counter=1, oldbin=1;
         for (int i=1;i<m_fftSamples/2+1;i++) {

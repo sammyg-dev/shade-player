@@ -37,7 +37,7 @@ namespace shade {
         
         // temp layers
         unique_ptr<ILayer> layer = make_unique<ShaderLayer>(rec);
-        layer->Init("resources/shaders/driveHome.fs");
+        layer->Init("resources/shaders/simpleViz.fs");
         InsertLayer(move(layer));
         unique_ptr<ILayer> layer2 = make_unique<AudioPlayerLayer>(rec);
         InsertLayer(move(layer2));

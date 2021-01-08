@@ -4,6 +4,8 @@
 
 #include <raylib.h>
 #include "ILayer.hpp"
+//temp
+#include "../Core/EventEmitter.hpp"
 
 namespace shade {
 
@@ -19,7 +21,8 @@ namespace shade {
         m_dimensions = dimensions;
       }
 
-      // ~ShaderLayer(){}
+      ~ShaderLayer(){
+      }
 
       void Init(const char* filePath){
         m_shader = LoadShader("", filePath);
@@ -32,6 +35,22 @@ namespace shade {
         m_iResolution[0] = (float)m_dimensions.width;
         m_iResolution[1] = (float)m_dimensions.height;
         SetShaderValue(m_shader, m_iResolutionLoc, m_iResolution, UNIFORM_VEC2);
+
+        // temp
+        EventEmitter::On<FFTUpdateEvent>([&](FFTUpdateEvent& e) { OnFFTUpdate(e); });
+        m_fftSamplesLoc = GetShaderLocation(m_shader, "fftSamples");
+        m_rmsLoc = GetShaderLocation(m_shader, "rms");
+      }
+      // temp
+      void OnFFTUpdate(FFTUpdateEvent &e){
+        float rms = 0;
+        for(int i = 0; i < 512; ++i){
+          m_fftSamples[i] = e.FreqBins[i];
+          rms += e.FreqBins[i];
+        }
+        rms /= 512;
+        SetShaderValueV(m_shader, m_fftSamplesLoc, &m_fftSamples, UNIFORM_INT, 512);
+        SetShaderValue(m_shader, m_rmsLoc, &rms, UNIFORM_FLOAT);
       }
 
       void Render(float deltaTime){
@@ -55,6 +74,9 @@ namespace shade {
       int m_iTimeLoc;
       int m_iResolutionLoc;
       float m_iResolution[2] = {};
+      int m_fftSamplesLoc;
+      int m_fftSamples[512] = {255};
+      int m_rmsLoc;
   };
 }
 #endif // _SHADEPLAYER_INCLUDE_SHADERLAYER_HPP_

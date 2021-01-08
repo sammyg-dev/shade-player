@@ -113,7 +113,8 @@ namespace shade {
         // - support 2 channels? only seems to work with setting mono this way
         // - instead of loading wave, just us a Music stream and grab the audio buffer per update somehow?        
         Wave wave = LoadWave(song.Filepath.c_str()); // not sure if i need to unload?
-        WaveFormat(&wave, 44100, wave.sampleSize, 1);        
+        WaveFormat(&wave, 44100, 16, 1);
+        
         m_audioDataSize = wave.sampleCount;
         m_audioData = new short[m_audioDataSize];
         m_audioBuff = new short[m_spu];

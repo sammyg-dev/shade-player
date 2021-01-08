@@ -21,6 +21,18 @@ namespace shade {
   struct GetVolumeEvent { float Value; };
   struct GetPlaybackStateEvent { PlaybackState State; };
   struct GetPlaylistEvent { vector<Song> Playlist; };
+
+  // analyzer events
+  struct FFTUpdateEvent {
+    int* FreqBins;
+    int FreqBinsSize;
+    short* WaveData;
+  };
+  //////////////////////////////
+  //////////////////////////////
+  /// Shader Param Events
+  //////////////////////////////
+  //struct UpdateShaderParamEvent
   //////////////////////////////
 
   /*
