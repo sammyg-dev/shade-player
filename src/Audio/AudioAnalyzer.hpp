@@ -5,7 +5,7 @@
 #include <kiss_fft.h>
 #include <kiss_fftr.h>
 
-#define DEBUG_DRAW true
+#define DEBUG_DRAW false
 
 namespace shade {
   double cheby_poly(int n, double x){
@@ -91,7 +91,61 @@ namespace shade {
           m_fBuff[i] = (float)pAudioBuff[i] * m_window[i];
         }
         kiss_fftr(m_cfg, m_fBuff, m_freqs);
+
+        // freqbin, rms, peak
+        float fftSpec[m_fftSamples/2 + 1] = {0};//new float[m_fftSamples/2 + 1];
+        float rms = 0;
+        float peak = 0;
+        float parseval = (float)1.0 / (float)m_fftSamples; // conserve energy theorem
+        float correction = 1.0; // not sure what this should be but i think it is based on window func
+        // note bin
+        float hzPerBand = 44100.0 / m_fftSamples;
+        int noteBin[256]={0}; //resets bins to zero
+        int rightbin=1, counter=1, oldbin=1;
+        // small bin
+        int smallBin[64] = {0}; // group and avg freqbin 
+        int sbIndex = 0, sbCounter = 0, sbVal = 0, sbInterval = (int)m_fftSamples/2/64;
+
+        for(int i = 1; i < m_fftSamples / 2 + 1; ++i){
+          // freq magnitude bin
+          float mag = correction * max((float)0, 10*log(m_freqs[i].r * m_freqs[i].r * parseval));
+          fftSpec[i] = mag;
+
+          // rms & peak
+          rms += mag*mag;
+          if(mag > peak) peak = mag;
+
+          // note frequency bin
+          rightbin=trunc(12.0*(log(i*hzPerBand)-log(440.0))/log(2.0)+48);  // map frequency of FFT bin to correct consolidated bin, inverse of f(x)=440*2^(i-48)/12 to get note frequencies on scale starting 4 octaves down from A=440Hz
+          noteBin[rightbin]+=mag;
+          if (rightbin==oldbin) {
+                  counter++;
+                  oldbin=rightbin;
+          } else {  //If we have moved to a new bin, divide the previous one by counter to average it
+              noteBin[rightbin-1]/=counter;
+              counter=1;
+              oldbin=rightbin;
+          }
+
+          // small bin
+          if(sbCounter >= sbInterval){
+            smallBin[sbIndex++] = sbVal / sbInterval;
+            sbCounter = 0;     
+            sbVal = 0;       
+          } else {
+            ++sbCounter;
+            sbVal += (int)fftSpec[i];
+          }
+        }
+        noteBin[oldbin]/=counter;  //divide the last bin too
+        rms = sqrt(rms / (float)m_fftSamples);
+
+        FFTUpdateEvent e = { smallBin, 64, noteBin, 256, rms, peak};
+        EventEmitter::Emit<FFTUpdateEvent>(e);
+
         if(DEBUG_DRAW) DebugDraw(pAudioBuff, spu, cursorPos);
+
+        // cleanup
       }
 
       void DebugDraw(short* pAudioBuff, int spu, int cursorPos){
@@ -118,8 +172,6 @@ namespace shade {
             }
             DrawLine(i*(barwidth+1),850-dots[i].Value,i*(barwidth+1)+barwidth,850-dots[i].Value,WHITE);
         }
-        FFTUpdateEvent e = { smoothbins, m_fftSamples/2 + 1, pAudioBuff };
-        EventEmitter::Emit<FFTUpdateEvent>(e);
 
         int rightbin=1, counter=1, oldbin=1;
         for (int i=1;i<m_fftSamples/2+1;i++) {
@@ -136,6 +188,8 @@ namespace shade {
             }
         }
         mbins[oldbin]/=counter;  //divide the last bin too
+        // FFTUpdateEvent e = { mbins, 256, pAudioBuff };
+        // EventEmitter::Emit<FFTUpdateEvent>(e);
         //Draw consolidated bins and bars
         for (int i=0;i<128;i++) {
             DrawRectangle(i*11,600-mbins[i],10,mbins[i],BLUE);

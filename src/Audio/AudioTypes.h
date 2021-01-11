@@ -1,6 +1,8 @@
 #ifndef _SHADEPLAYER_INCLUDE_AUDIOTYPES_H
 #define _SHADEPLAYER_INCLUDE_AUDIOTYPES_H
 
+#define FFT_SAMPLES_COUNT 512;
+
 #include <string>
 using namespace std;
 

@@ -7,7 +7,10 @@
 
 uniform vec2 iResolution;
 uniform float iTime;
-uniform vec2 fftSamples[512];
+uniform int avxFreqBin[64];
+uniform int avxNoteBin[256];
+uniform float avxRMS;
+uniform float avxPeak;
 
 out vec4 outColor;
 
@@ -18,7 +21,7 @@ void main( void )
     float CIRCLES = 20.0;
     float cS = 0.375;
     
-    float sm = 1.0 / iResolution.y * 2.0; // smooth
+    float sm = 1.0 / iResolution.y * 4.0; // smooth
     float ps = 1.0 / iResolution.y * sqrt(iResolution.y) * 0.225; // circle thin
     
     float d = length(uv);
@@ -26,7 +29,7 @@ void main( void )
     float a = atan(uv.y, uv.x);
     a = a < 0.0 ? PI + (PI - abs(a)) : a;
     
-    float lPos = a /PI2;
+    float lPos = a / PI2;
     
     float m = 0.0;
     float partSize = 1.0 / CIRCLES;
@@ -37,17 +40,24 @@ void main( void )
         float cPos = partSize * i + ilPos * partSize;
         float invPos = partSize * (i + 1.0) - ilPos * partSize;
         float nzF = (1.0 - ilPos);
-        float mP0 = texture(texture0, vec2(partSize * i, 0.0)).x;
-        float mP = texture(texture0, vec2(cPos, 0.0)).x;
-        float mPInv = texture(texture0, vec2(invPos, 0.0)).x;
+        float mP0 = float(avxFreqBin[int(partSize*i)]);
+        float mP = float(avxFreqBin[int(cPos)]);
+        float mPInv = float(avxFreqBin[int(invPos)]);
         
         mP = (mP + mPInv) / 2.0;
         
         float rDiff = i*(1.0 / CIRCLES * 0.35);
         float r = mP * (1.0 / CIRCLES * 3.0) - rDiff;
         
+        // circle outline
+        // 1.0 - smoothstep(0.0, borderThickness, abs(radius-d));
+        // filled circle with border outline
+        // float t1 = 1.0 - smoothstep(radius-borderThickness, radius, d);
+        // float t2 = 1.0 - smoothstep(radius, radius+borderThickness, d);
+        // frag_colour = vec4(mix(color.rgb, baseColor.rgb, t1), t2);  
+
         float subm = smoothstep(cS - ps + r, cS - ps + sm + r, d) * smoothstep(cS + r, cS - sm + r, d);
-        
+        //float subm = 1.0 - smoothstep(cS - ps + r, cS - ps + sm + r, d);
         if (subm > 0.0) {
             col = hue(i / CIRCLES * 0.5 + iTime * 0.05 + mP0 * 0.84).rgb;
         }

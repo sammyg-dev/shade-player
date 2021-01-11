@@ -9,7 +9,7 @@ namespace shade {
   // events defined here for now, figure out better loc l8r
   //////////////////////////////
   /// Audio Player Events
-  //////////////////////////////  
+  //////////////////////////////
   struct PlayClickEvent {};
   struct PauseClickEvent {};
   struct StopClickEvent {};
@@ -24,9 +24,12 @@ namespace shade {
 
   // analyzer events
   struct FFTUpdateEvent {
-    int* FreqBins;
-    int FreqBinsSize;
-    short* WaveData;
+    int* FreqBin;
+    int FreqBinSize;
+    int* NoteBin;
+    int NoteBinSize;
+    float RMS;
+    float Peak;
   };
   //////////////////////////////
   //////////////////////////////

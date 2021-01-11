@@ -2,30 +2,37 @@
 
 uniform vec2 iResolution;
 uniform float iTime;
-uniform int fftSamples[512];
-uniform float rms;
+uniform int avxFreqBin[64];
+uniform int avxNoteBin[256];
+uniform float avxRMS;
+uniform float avxPeak;
 
 out vec4 fragColor;
 
+// use this to test shader params are updating correctly from app
+// todo: better test visualizations
 void main( void )
 {
   // create pixel coordinates
 	vec2 uv = gl_FragCoord.xy / iResolution.xy;
 
-  // the sound texture is 512x2
-  int tx = int(uv.x*512.0);
-    
-	// first row is frequency data (48Khz/4 in 512 texels, meaning 23 Hz per texel)
-	//float fft  = texelFetch( texture0, ivec2(tx,0), 0 ).x; 
-  float fft = fftSamples[tx] / 255.;
-  // second row is the sound wave, one texel is one mono sample
-  //float wave = texelFetch( texture0, ivec2(tx,1), 0 ).x;
-	
-	// convert frequency to colors
-	//vec3 col = vec3( fft, 4.0*fft*(1.0-fft), 1.0-fft ) * fft;
-  vec3 col = vec3(fft, 0.1, 0.1) * rms;
-  // add wave form on top	
-	//col += 1.0 -  smoothstep( 0.0, 0.15, abs(wave - uv.y) );
+  int index = int(uv.x*64);
+  int index2 = int(uv.x*256);
+
+  int freqMag = avxFreqBin[index];
+  int noteMag = avxNoteBin[index2];
+
+	// draw spectrum bars
+  vec3 col = vec3(0.,0.,0.);
+
+  // get in range [0, 1]
+  float h1 = freqMag / avxPeak;
+  float h2 = noteMag / avxPeak;
+
+  float ch1 = h1 - uv.y;
+  float ch2 = h2 - uv.y;
+
+  col = vec3(ch1, 0., ch2);
 	
 	// output final color
 	fragColor = vec4(col,1.0);

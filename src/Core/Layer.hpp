@@ -27,7 +27,7 @@ namespace shade {
 
       ~Layer(){};
 
-      void Init(const char* filePath) override {
+      void Init(const char* filePath, bool isReactive) override {
 
       };
 

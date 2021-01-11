@@ -36,11 +36,12 @@ namespace shade {
         // load ish from file later
         
         // temp layers
-        unique_ptr<ILayer> layer = make_unique<ShaderLayer>(rec);
-        layer->Init("resources/shaders/simpleViz.fs");
-        InsertLayer(move(layer));
-        unique_ptr<ILayer> layer2 = make_unique<AudioPlayerLayer>(rec);
-        InsertLayer(move(layer2));
+        unique_ptr<ILayer> shaderTest = make_unique<ShaderLayer>(rec);
+        shaderTest->Init("resources/shaders/circlesViz.fs", true);
+        InsertLayer(move(shaderTest));
+        unique_ptr<ILayer> audioPlayerGUI = make_unique<AudioPlayerLayer>(rec);
+        audioPlayerGUI->Init(nullptr, false);
+        InsertLayer(move(audioPlayerGUI));
 
       }
 

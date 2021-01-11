@@ -17,7 +17,7 @@ namespace shade {
     public:
       virtual ~ILayer(){}
 
-      virtual void Init(const char* filePath) = 0;
+      virtual void Init(const char* filePath, bool isReactive) = 0;
       virtual void Render(float deltaTime) = 0;
 
       // to avoid slicing, use a clone_impl func that our child classes can override

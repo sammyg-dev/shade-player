@@ -2,10 +2,13 @@
 #define _SHADEPLAYER_INCLUDE_SHADERLAYER_HPP_
 #define DEFAULT_ZINDEX 100
 
+#include <map>
+#include <string>
 #include <raylib.h>
 #include "ILayer.hpp"
-//temp
 #include "../Core/EventEmitter.hpp"
+
+using namespace std;
 
 namespace shade {
 
@@ -22,43 +25,63 @@ namespace shade {
       }
 
       ~ShaderLayer(){
+        UnloadShader(m_shader);
       }
 
-      void Init(const char* filePath){
+      void Init(const char* filePath, bool isReactive){
         m_shader = LoadShader("", filePath);
 
-        // how to handle shader params... perhaps just create one standard 
-        // "interface" or set of params every shader gets passed, whether or not they use them
-        m_iTime = 0.0f;
-        m_iTimeLoc = GetShaderLocation(m_shader, "iTime");
-        m_iResolutionLoc = GetShaderLocation(m_shader, "iResolution");
-        m_iResolution[0] = (float)m_dimensions.width;
-        m_iResolution[1] = (float)m_dimensions.height;
-        SetShaderValue(m_shader, m_iResolutionLoc, m_iResolution, UNIFORM_VEC2);
+        // setup default shader uniform params
+        AddShaderParam("iTime");
+        AddShaderParam("iResolution");
+        float res[2] = { (float)m_dimensions.width, (float)m_dimensions.height };
+        SetShaderValue(m_shader, m_uniformLocs["iResolution"], res, UNIFORM_VEC2);
 
-        // temp
-        EventEmitter::On<FFTUpdateEvent>([&](FFTUpdateEvent& e) { OnFFTUpdate(e); });
-        m_fftSamplesLoc = GetShaderLocation(m_shader, "fftSamples");
-        m_rmsLoc = GetShaderLocation(m_shader, "rms");
-      }
-      // temp
-      void OnFFTUpdate(FFTUpdateEvent &e){
-        float rms = 0;
-        for(int i = 0; i < 512; ++i){
-          m_fftSamples[i] = e.FreqBins[i];
-          rms += e.FreqBins[i];
+        // setup avx music-reactive shader uniform params and event binding
+        if(isReactive){
+          AddShaderParam("avxFFTSpectrum");
+          AddShaderParam("avxRMS");
+          AddShaderParam("avxPeak");
+          AddShaderParam("avxBeatImp");
+          EventEmitter::On<FFTUpdateEvent>([&](FFTUpdateEvent& e) { OnFFTUpdate(e); });
         }
-        rms /= 512;
-        SetShaderValueV(m_shader, m_fftSamplesLoc, &m_fftSamples, UNIFORM_INT, 512);
-        SetShaderValue(m_shader, m_rmsLoc, &rms, UNIFORM_FLOAT);
+      }
+      // only bound when shader layer was set to reactive on Init
+      void OnFFTUpdate(FFTUpdateEvent &e){
+        SetShaderValueV(m_shader, m_uniformLocs["avxNoteBin"], &e.NoteBin, UNIFORM_INT, e.NoteBinSize);
+        SetShaderValueV(m_shader, m_uniformLocs["avxFreqBin"], &e.FreqBin, UNIFORM_INT, e.FreqBinSize);
+        SetShaderValue(m_shader, m_uniformLocs["avxRMS"], &e.RMS, UNIFORM_FLOAT);
+        SetShaderValue(m_shader, m_uniformLocs["avxPeak"], &e.Peak, UNIFORM_FLOAT);
+        // SetShaderValue(m_shader, m_uniformLocs["avxBeatImp"], &avxBeatImp, UNIFORM_FLOAT);
       }
 
       void Render(float deltaTime){
+        // setup render
         m_iTime += deltaTime;
-        SetShaderValue(m_shader, m_iTimeLoc, &m_iTime, UNIFORM_FLOAT);
+        SetShaderValue(m_shader, m_uniformLocs["iTime"], &m_iTime, UNIFORM_FLOAT);
         BeginShaderMode(m_shader);
+
+        // maybe provide some kind of hook to customize rendering without needing to subclass?
+        // render empty rec for shader visualization
         DrawRectangle(m_dimensions.x, m_dimensions.y, m_dimensions.width, m_dimensions.height, WHITE);
+
+        // end render
         EndShaderMode();
+      }
+
+      // public interface for adding a custom shader param
+      void AddShaderParam(string paramName){
+        m_uniformLocs.insert(pair<string, int>(paramName, GetShaderLocation(m_shader, paramName.c_str())));
+      }
+
+      // public interface for setting a custom shader param value
+      void SetShaderParamValue(string paramName, const void* paramValue, ShaderUniformDataType paramType) {
+        SetShaderValue(m_shader, m_uniformLocs[paramName], paramValue, paramType);
+      }
+
+      // public interface for setting a custom shader param vector value
+      void SetShaderParamValueV(string paramName, const void* paramValue, ShaderUniformDataType paramType, int paramCount){
+        SetShaderValueV(m_shader, m_uniformLocs[paramName], paramValue, paramType, paramCount);
       }
 
     protected:
@@ -68,15 +91,12 @@ namespace shade {
 
       virtual ShaderLayer* clone_impl() const override { return new ShaderLayer(*this); }
     private:
-      // temp props
+      // running total time ran, passed to shader by default
+      float m_iTime = 0;
+      // shader ref for this layer
       Shader m_shader;
-      float m_iTime;
-      int m_iTimeLoc;
-      int m_iResolutionLoc;
-      float m_iResolution[2] = {};
-      int m_fftSamplesLoc;
-      int m_fftSamples[512] = {255};
-      int m_rmsLoc;
+      // map of all uniform shader locations
+      map<string, int> m_uniformLocs;
   };
 }
 #endif // _SHADEPLAYER_INCLUDE_SHADERLAYER_HPP_

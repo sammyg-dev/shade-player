@@ -41,7 +41,7 @@ namespace shade {
 
       // ~AudioPlayerLayer(){}
 
-      void Init(const char* filePath){
+      void Init(const char* filePath, bool isReactive){
 
       }
 
