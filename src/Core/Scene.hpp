@@ -6,6 +6,7 @@
 #include "ILayer.hpp"
 #include "ShaderLayer.hpp"
 #include "Layer.hpp"
+#include "Layer3D.hpp"
 #include "../ViewModels/AudioPlayerLayer.hpp"
 
 using namespace std;
@@ -30,24 +31,25 @@ namespace shade {
       Scene& operator=(Scene && other) = default;
 
       void Init(Rectangle rec){
-        // for(size_t i = 0; i <= m_pLayers.size(); ++i){
-        //   m_pLayers[i]->Init();
-        // }
-        // load ish from file later
+        // load ish from file later?
         
         // temp layers
         unique_ptr<ILayer> shaderTest = make_unique<ShaderLayer>(rec);
-        shaderTest->Init("resources/shaders/circlesViz.fs", true);
+        shaderTest->Init("resources/shaders/clouds.fs", true);
         InsertLayer(move(shaderTest));
+        unique_ptr<ILayer> test3d = make_unique<Layer3D>(rec);
+        test3d->Init(nullptr, false);
+        InsertLayer(move(test3d));
         unique_ptr<ILayer> audioPlayerGUI = make_unique<AudioPlayerLayer>(rec);
         audioPlayerGUI->Init(nullptr, false);
         InsertLayer(move(audioPlayerGUI));
 
+        m_target = LoadRenderTexture(rec.width, rec.height);
       }
 
       void Render(float deltaTime){        
         for(const auto &layer : m_pLayers){
-          layer->Render(deltaTime);
+          layer->Render(deltaTime, m_target);
         }
       }
 
@@ -71,9 +73,9 @@ namespace shade {
 
 
     protected:
+      RenderTexture2D m_target;
       bool m_isActive = true;
       int m_zIndex = DEFAULT_ZINDEX;
-
 
     private:
 

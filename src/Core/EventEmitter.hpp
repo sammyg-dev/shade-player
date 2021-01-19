@@ -17,10 +17,12 @@ namespace shade {
   struct PlayPrevClickEvent {};
   struct VolumeUpdateEvent {float Value;};
   struct RemoveSongByIndexEvent { int Index; };
+  struct PlaySongEvent { Song Song; };
   // this is kind of a hack
   struct GetVolumeEvent { float Value; };
   struct GetPlaybackStateEvent { PlaybackState State; };
   struct GetPlaylistEvent { vector<Song> Playlist; };
+  
 
   // analyzer events
   struct FFTUpdateEvent {

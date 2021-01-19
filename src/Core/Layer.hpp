@@ -31,7 +31,7 @@ namespace shade {
 
       };
 
-      void Render(float deltaTime) override {
+      void Render(float deltaTime, RenderTexture2D target) override {
         // for(size_t i = 0; i <= m_pDisplayObjects.size(); ++i){
         //   m_pDisplayObjects[i]->Render(deltaTime);
         // }
