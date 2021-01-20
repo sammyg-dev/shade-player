@@ -139,7 +139,8 @@ namespace shade {
         // update plaeyr state
         if(IsAudioStreamPlaying(*m_pAudioStream)){
           m_state = PlaybackState::PLAYING;
-          //m_audioAnalyzer.Init();
+          PlaySongEvent e = { song };
+          EventEmitter::Emit<PlaySongEvent>(e);
         } else {
           m_state = PlaybackState::ERROR;
         }
@@ -165,6 +166,7 @@ namespace shade {
         } else {
           ++m_playlistIndex;
         }
+        if(m_state == PLAYING) Stop();
         Play();
       }
       // plays previous song in playlist
@@ -176,6 +178,7 @@ namespace shade {
           } else {
             --m_playlistIndex;
           }
+        if(m_state == PLAYING) Stop();
         Play();
       }
       // update playback volume
@@ -206,7 +209,9 @@ namespace shade {
         for(int i = 0; i < count; ++i){
           // basic file name parse for now
           string path = files[i];
-          string fileName(path.substr(path.rfind("\\") + 1));
+          int offset = path.rfind("\\") + 1;
+          // trim that .wav at the end, do a split on '.' l8r
+          string fileName(path.substr(offset, path.length() - 4 - offset ));
           Song s = {
             fileName, // do more to find song name l8r
             nullptr, // and artist info so we can set this
@@ -313,7 +318,6 @@ namespace shade {
       }
       // handle volume slider update from UI
       void OnVolumeUpdate(VolumeUpdateEvent e){
-        printf("Volume in: %f\n", e.Value);
         SetVolume(e.Value);
       }
       void OnGetVolume(GetVolumeEvent& e){

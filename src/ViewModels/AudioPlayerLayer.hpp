@@ -36,16 +36,17 @@ namespace shade {
       AudioPlayerLayer(Rectangle dimensions){
         m_dimensions = dimensions;
         // move this l8r
-        GuiLoadStyle("resources/styles/cherry/cherry.rgs");
+        GuiLoadStyle("resources/styles/shade/shade.rgs");
+    
       }
 
       // ~AudioPlayerLayer(){}
 
       void Init(const char* filePath, bool isReactive){
+        EventEmitter::On<PlaySongEvent>([&](PlaySongEvent& e) { OnPlaySong(e); });
+      }      
 
-      }
-
-      void Render(float deltaTime){
+      void Render(float deltaTime, RenderTexture2D target){
         // hardcode the gui for now
         if(m_isActive){
           // bottom bar controls
@@ -94,6 +95,12 @@ namespace shade {
           // open files btn (mayb do this l8r, for now just drag&drop)
           // if (GuiButton({w - 100 , ch, 50, 50}, GuiIconText(RICON_FOLDER_OPEN, ""))) { 
             
+
+          // show song title
+          if(!m_currentSong.Filepath.empty()){
+            GuiDrawText(m_currentSong.Name.c_str(), { 10, 10, 200, 10}, GuiTextAlignment::GUI_TEXT_ALIGN_LEFT, Fade(RAYWHITE, 0.75));
+          }
+
           // }
           // playlist show/hide toggle
           m_showPlaylist = GuiToggle({w - 100 , ch, 100, 50}, "playlist", m_showPlaylist);
@@ -101,7 +108,7 @@ namespace shade {
             float pw = w / 3;
             float ph = m_dimensions.height * 2 / 3;
             Rectangle panelRec = { w - pw, ch - ph, pw, ph };
-            DrawRectangle(panelRec.x,panelRec.y, panelRec.width, panelRec.height, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.9));
+            DrawRectangle(panelRec.x,panelRec.y, panelRec.width, panelRec.height, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_NORMAL)), 0.8));
             GetPlaylistEvent playlistEvent = { vector<Song>() };
             EventEmitter::Emit<GetPlaylistEvent>(playlistEvent);
 
@@ -137,7 +144,13 @@ namespace shade {
           // }
           int y = view.y + m_panelScroll.y + i*50;
           int x = view.x + m_panelScroll.x;
-          DrawRectangleLinesEx({x, y, view.width, 50}, 1, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_NORMAL)));
+          Color c = GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_NORMAL));
+          int thick = 1;
+          if(s.Filepath == m_currentSong.Filepath || (i == 0 && m_currentSong.Filepath.empty())){
+            c = GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL));
+            thick = 2;
+          }
+          DrawRectangleLinesEx({x, y, view.width, 50}, thick, c);
           // song name label
           GuiLabel({ x + pad, y, view.width - pad*2, 50}, s.Name.c_str());
           //DrawText(s.Name.c_str(), view.x + pad, y + 25, 16,  GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
@@ -160,6 +173,12 @@ namespace shade {
       // playlist panel state
       Vector2 m_panelScroll = { 0, 0 };
       Rectangle m_panelContentRec;
+
+      Song m_currentSong;
+
+      void OnPlaySong(PlaySongEvent e){
+        m_currentSong = e.Song;
+      }
 
       virtual AudioPlayerLayer* clone_impl() const override { return new AudioPlayerLayer(*this); }
     private:

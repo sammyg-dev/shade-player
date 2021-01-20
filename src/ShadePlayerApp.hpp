@@ -4,6 +4,7 @@
 // #include <memory>
 #include <raylib.h>
 #include "Core/Scene.hpp"
+//#include "Core/Scene3D.hpp"
 #include "Core/ShaderLayer.hpp"
 #include "Core/Layer.hpp"
 #include "Audio/AudioPlayer.hpp"
@@ -30,7 +31,7 @@ namespace shade {
 
   class ShadePlayerApp {
     public:
-      ShadePlayerApp(int screenWidth = 1920, int screenHeight = 1080, int fps = 60){
+      ShadePlayerApp(int screenWidth = 2560, int screenHeight = 1440, int fps = 60){
         m_windowConfig = {
           screenWidth,
           screenHeight,
@@ -43,9 +44,12 @@ namespace shade {
       // loads resources and initializes objects needed at start
       void Init(){
  
+        SetConfigFlags(FLAG_MSAA_4X_HINT);      // Enable Multi Sampling Anti Aliasing 4x (if available)
+
         InitWindow(m_windowConfig.ScreenWidth, m_windowConfig.ScreenHeight, "Shade Player");
         InitAudioDevice();        
         SetTargetFPS(m_windowConfig.TargetFPS);
+        //ToggleFullscreen();
 
         m_pAudioPlayer = make_unique<AudioPlayer>();
 
@@ -93,7 +97,7 @@ namespace shade {
             ///////////////////////////////
             // main draw loop
             BeginDrawing();
-            ClearBackground(BLANK);
+            ClearBackground(RAYWHITE);
 
 
             // todo: layerstack rendering

@@ -97,7 +97,7 @@ namespace shade {
         float rms = 0;
         float peak = 0;
         float parseval = (float)1.0 / (float)m_fftSamples; // conserve energy theorem
-        float correction = 1.0; // not sure what this should be but i think it is based on window func
+        float correction = 0.54; // not sure what this should be but i think it is based on window func
         // note bin
         float hzPerBand = 44100.0 / m_fftSamples;
         int noteBin[256]={0}; //resets bins to zero
