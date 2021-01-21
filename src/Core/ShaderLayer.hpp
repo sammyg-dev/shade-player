@@ -34,6 +34,7 @@ namespace shade {
         // setup default shader uniform params
         AddShaderParam("iTime");
         AddShaderParam("iResolution");
+        AddShaderParam("iMouse");
         float res[2] = { (float)m_dimensions.width, (float)m_dimensions.height };
         SetShaderValue(m_shader, m_uniformLocs["iResolution"], res, UNIFORM_VEC2);
 
@@ -61,7 +62,9 @@ namespace shade {
       void Render(float deltaTime, RenderTexture2D target){
         // setup render
         m_iTime += deltaTime;
+        Vector2 mouse = GetMousePosition();
         SetShaderValue(m_shader, m_uniformLocs["iTime"], &m_iTime, UNIFORM_FLOAT);
+        SetShaderValue(m_shader, m_uniformLocs["iMouse"], &mouse, UNIFORM_VEC2);
         BeginShaderMode(m_shader);
 
         // maybe provide some kind of hook to customize rendering without needing to subclass?

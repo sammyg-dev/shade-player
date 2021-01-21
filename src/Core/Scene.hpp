@@ -35,11 +35,11 @@ namespace shade {
         
         // temp layers
         unique_ptr<ILayer> shaderTest = make_unique<ShaderLayer>(rec);
-        shaderTest->Init("resources/shaders/clouds.fs", true);
+        shaderTest->Init("resources/shaders/starfield.fs", true);
         InsertLayer(move(shaderTest));
-        unique_ptr<ILayer> test3d = make_unique<Layer3D>(rec);
-        test3d->Init(nullptr, false);
-        InsertLayer(move(test3d));
+        // unique_ptr<ILayer> test3d = make_unique<Layer3D>(rec);
+        // test3d->Init(nullptr, false);
+        // InsertLayer(move(test3d));
         unique_ptr<ILayer> audioPlayerGUI = make_unique<AudioPlayerLayer>(rec);
         audioPlayerGUI->Init(nullptr, false);
         InsertLayer(move(audioPlayerGUI));

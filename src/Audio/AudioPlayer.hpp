@@ -41,7 +41,7 @@ namespace shade {
           m_pAudioStream = nullptr;
         }
         
-        m_playlist.clear();
+        //m_playlist.clear();
       };      
 
       void Update(float deltaTime){

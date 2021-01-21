@@ -166,7 +166,7 @@ namespace shade {
 
     protected:
       bool m_isActive = true;
-      bool m_showPlaylist = true;
+      bool m_showPlaylist = false;
       int m_zIndex = DEFAULT_ZINDEX;
       Rectangle m_dimensions;
 
