@@ -38,6 +38,7 @@ namespace shade {
         ClearBackground(BLANK);
         BeginMode3D(m_camera);
 
+        // todo: load model
         DrawGrid(100, 1.0f);
         DrawSphere( {1, 1, 1}, 1, GREEN);
         DrawSphere( {0.5, 0, 1}, 1, RED);

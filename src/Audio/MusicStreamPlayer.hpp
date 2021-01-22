@@ -1,5 +1,5 @@
-#ifndef _SHADEPLAYER_INCLUDE_AUDIOPLAYER_HPP_
-#define _SHADEPLAYER_INCLUDE_AUDIOPLAYER_HPP_
+#ifndef _SHADEPLAYER_INCLUDE_MUSICSTREAMPLAYER_HPP_
+#define _SHADEPLAYER_INCLUDE_MUSICSTREAMPLAYER_HPP_
 
 #include <raylib.h>
 #include <vector>
@@ -41,7 +41,7 @@ namespace shade {
           m_pAudioStream = nullptr;
         }
         
-        m_playlist.clear();
+        //m_playlist.clear();
       };      
 
       void Update(float deltaTime){
@@ -57,7 +57,7 @@ namespace shade {
                   m_audioDataCursor = 0;
                   ResetPlayTime();
                 } else {
-                  m_audioBuff[i] = -100;
+                  m_audioBuff[i] = 0;
                   m_state = PlaybackState::SONG_FINISHED;
                 }
               } else { // not end, just set data
@@ -113,6 +113,7 @@ namespace shade {
         // - support 2 channels? only seems to work with setting mono this way
         // - instead of loading wave, just us a Music stream and grab the audio buffer per update somehow?        
         Music music = LoadMusicStream(song.Filepath.c_str()); // not sure if i need to unload?
+        
         m_audioDataSize = music.sampleCount;
         m_audioData = new short[m_audioDataSize];
         m_audioBuff = new short[m_spu];
@@ -126,10 +127,11 @@ namespace shade {
         m_audioDataCursor += m_spu;
 
         // begin playing stream from audio buffer
-        m_pAudioStream = new AudioStream(InitAudioStream(m_samplingRate, music.stream.sampleSize, music.stream.channels));
+        m_pAudioStream = new AudioStream(InitAudioStream(m_samplingRate, music.stream.sampleSize, 1));
         SetVolume(m_volume); // set audio stream volume
         UpdateAudioStream(*m_pAudioStream, m_audioBuff, m_spu);
         PlayAudioStream(*m_pAudioStream);
+        UnloadMusicStream(music);
 
         // init audio analyzer
         m_audioAnalyzer.Init(m_audioBuff, m_spu, m_audioDataSize);
@@ -137,7 +139,8 @@ namespace shade {
         // update plaeyr state
         if(IsAudioStreamPlaying(*m_pAudioStream)){
           m_state = PlaybackState::PLAYING;
-          //m_audioAnalyzer.Init();
+          PlaySongEvent e = { song };
+          EventEmitter::Emit<PlaySongEvent>(e);
         } else {
           m_state = PlaybackState::ERROR;
         }
@@ -163,6 +166,7 @@ namespace shade {
         } else {
           ++m_playlistIndex;
         }
+        if(m_state == PLAYING) Stop();
         Play();
       }
       // plays previous song in playlist
@@ -174,6 +178,7 @@ namespace shade {
           } else {
             --m_playlistIndex;
           }
+        if(m_state == PLAYING) Stop();
         Play();
       }
       // update playback volume
@@ -204,7 +209,9 @@ namespace shade {
         for(int i = 0; i < count; ++i){
           // basic file name parse for now
           string path = files[i];
-          string fileName(path.substr(path.rfind("\\") + 1));
+          int offset = path.rfind("\\") + 1;
+          // trim that .wav at the end, do a split on '.' l8r
+          string fileName(path.substr(offset, path.length() - 4 - offset ));
           Song s = {
             fileName, // do more to find song name l8r
             nullptr, // and artist info so we can set this
@@ -311,7 +318,6 @@ namespace shade {
       }
       // handle volume slider update from UI
       void OnVolumeUpdate(VolumeUpdateEvent e){
-        printf("Volume in: %f\n", e.Value);
         SetVolume(e.Value);
       }
       void OnGetVolume(GetVolumeEvent& e){
@@ -332,4 +338,4 @@ namespace shade {
       bool __you_cant_touch_this = true;
   };
 }
-#endif // _SHADEPLAYER_INCLUDE_AUDIOPLAYER_HPP_
+#endif // _SHADEPLAYER_INCLUDE_MUSICSTREAMPLAYER_HPP_

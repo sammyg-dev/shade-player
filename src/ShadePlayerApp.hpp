@@ -106,7 +106,7 @@ namespace shade {
             // update loop for audio player (detect sound finish among other ish)
             m_pAudioPlayer->Update(deltaTime);
 
-            DrawFPS(10, 10);            
+            //DrawFPS(m_windowConfig.ScreenWidth - 100, 10);            
             EndDrawing();
             ///////////////////////////////
         }

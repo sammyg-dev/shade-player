@@ -57,7 +57,7 @@ namespace shade {
                   m_audioDataCursor = 0;
                   ResetPlayTime();
                 } else {
-                  m_audioBuff[i] = -100;
+                  m_audioBuff[i] = 0;
                   m_state = PlaybackState::SONG_FINISHED;
                 }
               } else { // not end, just set data
@@ -132,6 +132,7 @@ namespace shade {
         SetVolume(m_volume); // set audio stream volume
         UpdateAudioStream(*m_pAudioStream, m_audioBuff, m_spu);
         PlayAudioStream(*m_pAudioStream);
+        UnloadWave(wave);
 
         // init audio analyzer
         m_audioAnalyzer.Init(m_audioBuff, m_spu, m_audioDataSize);

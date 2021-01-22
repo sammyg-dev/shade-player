@@ -34,12 +34,14 @@ namespace shade {
         // load ish from file later?
         
         // temp layers
-        unique_ptr<ILayer> shaderTest = make_unique<ShaderLayer>(rec);
-        shaderTest->Init("resources/shaders/starfield.fs", true);
-        InsertLayer(move(shaderTest));
+        unique_ptr<ILayer> shaderTest2 = make_unique<ShaderLayer>(rec);
+        shaderTest2->Init("resources/shaders/linewaves.fs", true);
+        InsertLayer(move(shaderTest2));
+      
         // unique_ptr<ILayer> test3d = make_unique<Layer3D>(rec);
         // test3d->Init(nullptr, false);
         // InsertLayer(move(test3d));
+
         unique_ptr<ILayer> audioPlayerGUI = make_unique<AudioPlayerLayer>(rec);
         audioPlayerGUI->Init(nullptr, false);
         InsertLayer(move(audioPlayerGUI));

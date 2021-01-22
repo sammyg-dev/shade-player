@@ -15,6 +15,7 @@ namespace shade {
   /** 
    * 
    *  Specialized Layer class for rendering a post-process (screen) shader
+   *  todo: shader hot reloader
    * 
    */
   class ShaderLayer : public ILayer {
@@ -40,6 +41,9 @@ namespace shade {
 
         // setup avx music-reactive shader uniform params and event binding
         if(isReactive){
+          // need a couple smooth bins... do i even want them not smoothed?
+          // and do i smooth them in the analyzer or here...
+          //AddShaderParam("avxFreqSmoothBin")
           AddShaderParam("avxFreqBin");
           AddShaderParam("avxNoteBin");
           AddShaderParam("avxRMS");
@@ -70,6 +74,7 @@ namespace shade {
         // maybe provide some kind of hook to customize rendering without needing to subclass?
         // render empty rec for shader visualization
         //DrawRectangle(m_dimensions.x, m_dimensions.y, m_dimensions.width, m_dimensions.height, WHITE);
+        // todo: support multiple shader layers... multipass? 
         DrawTextureRec(target.texture, { 0, 0, target.texture.width, -target.texture.height }, { 0, 0 }, BLANK);
 
         // end render
