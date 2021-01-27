@@ -18,11 +18,16 @@ namespace shade {
   struct VolumeUpdateEvent {float Value;};
   struct RemoveSongByIndexEvent { int Index; };
   struct PlaySongEvent { Song Song; };
+  struct ShufflePlaylistEvent {};
   // this is kind of a hack
   struct GetVolumeEvent { float Value; };
   struct GetPlaybackStateEvent { PlaybackState State; };
   struct GetPlaylistEvent { vector<Song> Playlist; };
-  
+
+  //////////////////////////////
+  /// Shader Layer Events (or scene events?)
+  //////////////////////////////
+  struct SetShaderFileEvent { string Filename; };
 
   // analyzer events
   struct FFTUpdateEvent {

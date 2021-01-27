@@ -4,6 +4,8 @@
 #include <raylib.h>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <random>
 #include "AudioTypes.h"
 #include "AudioAnalyzer.hpp"
 #include "../Core/EventEmitter.hpp"
@@ -18,6 +20,7 @@ namespace shade {
    *    - .wav file support (todo: add more, limited by AudioAnalyzer atm)
    *    - AudioAnalyzer for real-time audio analysis
    */
+  auto RAND = default_random_engine {};
   class AudioPlayer {
     public:
       AudioPlayer(){
@@ -291,6 +294,7 @@ namespace shade {
         EventEmitter::On<StopClickEvent>([&](StopClickEvent& e) { OnStopClick(e); });
         EventEmitter::On<PlayNextClickEvent>([&](PlayNextClickEvent& e) { OnPlayNextClick(e); });
         EventEmitter::On<PlayPrevClickEvent>([&](PlayPrevClickEvent& e) { OnPlayPrevClick(e); });
+        EventEmitter::On<ShufflePlaylistEvent>([&](ShufflePlaylistEvent& e) { OnShuffleClick(e);});
         EventEmitter::On<VolumeUpdateEvent>([&](VolumeUpdateEvent& e) { OnVolumeUpdate(e); });
         EventEmitter::On<GetVolumeEvent>([&](GetVolumeEvent& e) { OnGetVolume(e); });
         EventEmitter::On<GetPlaybackStateEvent>([&](GetPlaybackStateEvent& e) { OnGetPlaybackState(e); });
@@ -316,6 +320,23 @@ namespace shade {
       // handle play prev btn click from UI
       void OnPlayPrevClick(PlayPrevClickEvent e){
         PlayPrev();
+      }
+      // handle playlist shuffle click from UI
+      void OnShuffleClick(ShufflePlaylistEvent e){
+        const Song s = m_playlist[m_playlistIndex];
+        // shuffle
+        shuffle(m_playlist.begin(), m_playlist.end(), RAND);
+        // if playing, swap so current song is at top of new shuffled playlist
+        if(m_state == PLAYING){
+          // need to add some unique identifier to Song struct.... on load
+          auto it = find_if(m_playlist.begin(), m_playlist.end(), [&s](const Song &song) { return s.Filepath == song.Filepath; });
+          if(it != m_playlist.end()){
+            auto i = distance(m_playlist.begin(), it);
+            swap(m_playlist[i], m_playlist[0]);
+          }
+        }
+        // set index to 0    
+        m_playlistIndex = 0;    
       }
       // handle volume slider update from UI
       void OnVolumeUpdate(VolumeUpdateEvent e){

@@ -3,7 +3,7 @@
 #define DEFAULT_ZINDEX 100
 
 
-
+#include <tuple> 
 #include <raylib.h>
 #define RAYGUI_IMPLEMENTATION
 #define RAYGUI_SUPPORT_RICONS
@@ -24,7 +24,6 @@ namespace shade {
    *  GUI Layer for AudioPlayer (which acts as the Model)
    *  We implement all our app's GUIs as Layers following the MVVM pattern
    *  todo:
-   *    - some kind of event emitter to communicate between this and AudioPlayer
    *    - decouple the View from ViewModel (maybe some kind of json or xml parser?)
    * 
    */
@@ -37,7 +36,12 @@ namespace shade {
         m_dimensions = dimensions;
         // move this l8r
         GuiLoadStyle("resources/styles/shade/shade.rgs");
-    
+        int defFontSize = GuiGetStyle(DEFAULT, TEXT_SIZE);
+        printf("Loading custom font w/ default size: %i", defFontSize);
+        Font font = LoadFontEx("resources/styles/shade/Maxellight.ttf", defFontSize, 0, 0);
+        GuiSetFont(font);
+        // we load font at larger size so it scales down instead of up
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
       }
 
       // ~AudioPlayerLayer(){}
@@ -98,8 +102,53 @@ namespace shade {
 
           // show song title
           if(!m_currentSong.Filepath.empty()){
-            GuiDrawText(m_currentSong.Name.c_str(), { 10, 10, 200, 10}, GuiTextAlignment::GUI_TEXT_ALIGN_LEFT, Fade(RAYWHITE, 0.75));
+            int defFontSize = GuiGetStyle(DEFAULT, TEXT_SIZE);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, 24);
+            GuiDrawText(m_currentSong.Name.c_str(), { 10, 24, 200, 10}, GuiTextAlignment::GUI_TEXT_ALIGN_LEFT, Fade(RAYWHITE, 0.75));
+            GuiSetStyle(DEFAULT, TEXT_SIZE, defFontSize);
           }
+
+          // shade radio icon (btn left)
+          // todo
+
+          // visualizations "dropdown"
+          m_showVizOptions = GuiToggle({w - 400 , ch, 200, 50}, m_selectedViz[1].c_str(), m_showVizOptions);
+          // load these from an ini l8r
+          string options[5][2] = { 
+            {"linewaves.fs", "line waves" },
+            {"starfield.fs", "star field"},
+            {"clouds.fs", "cloud tunnel"},
+            {"kifs.fs", "koch tunnel"},
+            {"idkyet.fs", "WIP"}
+          };          
+          if(m_showVizOptions){
+            for(int i = 0; i < sizeof options / sizeof options[0]; ++i){
+              if(GuiButton({w - 400, ch - 52*(i+1), 200, 50}, options[i][1].c_str())){
+                m_selectedViz[0] = options[i][0]; // bleh but easiest way to do this?
+                m_selectedViz[1] = options[i][1];
+                // emit option to shader layer... hmm this will be interesting
+                SetShaderFileEvent e = { options[i][0] };
+                EventEmitter::Emit<SetShaderFileEvent>(e);
+                // close options
+                m_showVizOptions = false;
+              }
+            }
+          }
+          // autoplay viz toggle
+          m_isVizAutoPlaying = GuiToggle({w - 450 , ch, 50, 50}, GuiIconText(RICON_CAMERA, ""), m_isVizAutoPlaying);
+
+          // temp placement of viz swapping over time
+          if(m_isVizAutoPlaying){
+            int randViz = GetRandomValue(0, 30000);
+            if(randViz < sizeof options / sizeof options[0]){
+              if(m_selectedViz[0] != options[randViz][0]){
+                m_selectedViz[0] = options[randViz][0];
+                m_selectedViz[1] = options[randViz][1];
+                SetShaderFileEvent e = { options[randViz][0] };
+                EventEmitter::Emit<SetShaderFileEvent>(e);
+              }
+            }
+          }          
 
           // }
           // playlist show/hide toggle
@@ -112,32 +161,49 @@ namespace shade {
             GetPlaylistEvent playlistEvent = { vector<Song>() };
             EventEmitter::Emit<GetPlaylistEvent>(playlistEvent);
 
+            // playlist header
+            // shuffle btn -> shuffles current playlist
+            int hy =26;
+            DrawRectangle(panelRec.x, panelRec.y - hy, panelRec.width, hy, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_NORMAL)), 0.85));
+            if(GuiButton({panelRec.x, panelRec.y - hy, panelRec.width, hy}, GuiIconText(RICON_SHUFFLE, ""))){
+              // emit to audio player which will do shuffling
+              ShufflePlaylistEvent e = {};
+              EventEmitter::Emit<ShufflePlaylistEvent>(e); // maybe this should return new playlist
+              // todo - we should reset current song to top of shuffled playlist but eh nbd
+            }
+
             m_panelContentRec = { w - pw-1, ch - ph-1, pw, playlistEvent.Playlist.size() * 50 }; // loop and calc
             //printf("scroll: %f %f\n", m_panelScroll.x, m_panelScroll.y);
-            // panel content
+            // panel content            
             BeginScissorMode(panelRec.x, panelRec.y, panelRec.width, panelRec.height);
             DrawPlaylist(panelRec, playlistEvent.Playlist);
             EndScissorMode();    
-            //UpdatePanelScroll(panelRec);
+            UpdatePanelScroll(panelRec);
           }        
         }
       }
 
+      // there was a GetMouseWheelMove bug in 3.0 so beware if reverting raylib back
       void UpdatePanelScroll(Rectangle &bounds){
         Vector2 mousePoint = GetMousePosition();
 
         if (CheckCollisionPointRec(mousePoint, bounds)){
           float wheel = GetMouseWheelMove();
-          printf("pos.y: %f wheel: %f\n", mousePoint.y, wheel);
-          m_panelScroll.y = wheel;//+= wheel * someScalar;
-          //m_panelScroll.y = max(-m_panelContentRec.height, min((float)0, m_panelScroll.y));
+          float speed = 20.0;
+          //printf("m_panelScroll: %f wheel: %f\n", m_panelScroll.y, wheel);
+          m_panelScroll.y += wheel * speed;
+          float minV = m_panelContentRec.height > bounds.height ? m_panelContentRec.height - bounds.height : 0;
+          m_panelScroll.y = max(-minV, min((float)0, m_panelScroll.y));
         }
       }
 
-      float DrawPlaylist(Rectangle &view, vector<Song> &songs){
+      float DrawPlaylist(Rectangle &view, vector<Song> &songs){        
         int i = 0;
         int pad = 10;
         float total = 0;
+        // temp set font smaller for playlist labels
+        int defFontSize = GuiGetStyle(DEFAULT, TEXT_SIZE);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 15);
         for(auto &s : songs) {
           // if(currentSong == s){
           //   DrawRectangleLinesEx({view.x, view.y + i*50, view.width, 50}, 1, GetColor(GuiGetStyle(DEFAULT, BORDER_COLOR_FOCUSED)));  
@@ -152,6 +218,7 @@ namespace shade {
           }
           DrawRectangleLinesEx({x, y, view.width, 50}, thick, c);
           // song name label
+          // todo: make a btn that can be clicked to replace current song
           GuiLabel({ x + pad, y, view.width - pad*2, 50}, s.Name.c_str());
           //DrawText(s.Name.c_str(), view.x + pad, y + 25, 16,  GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
           // remove song btn
@@ -162,6 +229,7 @@ namespace shade {
           total += 50;
           ++i;
         }
+        GuiSetStyle(DEFAULT, TEXT_SIZE, defFontSize); // reset font to default size
       }
 
     protected:
@@ -169,6 +237,11 @@ namespace shade {
       bool m_showPlaylist = false;
       int m_zIndex = DEFAULT_ZINDEX;
       Rectangle m_dimensions;
+
+      // viz options state
+      bool m_isVizAutoPlaying = true;
+      bool m_showVizOptions = false;
+      string m_selectedViz[2] = { "linewaves.fs", "line waves"}; // temp need to set on init or somethin
 
       // playlist panel state
       Vector2 m_panelScroll = { 0, 0 };
