@@ -32,8 +32,28 @@ namespace shade {
 
       void Init(Rectangle rec){
         // load ish from file later?
+  
+        /* we need some kind of editor to manage
+         *
+         * Add Layer -> Select Layer Type
+         * Input Layer config options (just dimensions atm which can default to screen)
+         * 
+         * Add DisplayObject to Layer -> Select DO Type
+         * Input DO config options (depends on type selected)
+         * 
+         * Layer and DO render sorting (dragndrop or just input index)
+         * 
+         * REMOVE Layers, REMOVE DOs
+         * 
+         * HIDE/SHOW toggle for Layers
+         * 
+         * SAVE to INI
+         */
 
+
+        /////////////////////////
         // temp layers
+        /////////////////////////
         unique_ptr<ILayer> shaderTest2 = make_unique<ShaderLayer>(rec);
         shaderTest2->Init("resources/shaders/linewaves.fs", true);
         InsertLayer(move(shaderTest2));        
@@ -45,7 +65,9 @@ namespace shade {
         unique_ptr<ILayer> audioPlayerGUI = make_unique<AudioPlayerLayer>(rec);
         audioPlayerGUI->Init(nullptr, false);
         InsertLayer(move(audioPlayerGUI));
+        /////////////////////////
 
+        // todo: support multiple render textures?
         m_target = LoadRenderTexture(rec.width, rec.height);
       }
 

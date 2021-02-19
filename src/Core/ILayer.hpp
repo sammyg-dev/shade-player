@@ -19,6 +19,8 @@ namespace shade {
 
       virtual void Init(const char* filePath, bool isReactive) = 0;
       virtual void Render(float deltaTime, RenderTexture2D target) = 0;
+      //virtual void AddDisplayObject(IDisplayObject& obj) = 0;
+      //virtual void RemoveDisplayObject(IDisplayObject& obj) = 0;
 
       // to avoid slicing, use a clone_impl func that our child classes can override
       // thanks to https://stackoverflow.com/a/43263477

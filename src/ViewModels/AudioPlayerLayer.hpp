@@ -15,6 +15,9 @@
 #include "../Core/EventEmitter.hpp"
 #include "../Core/ILayer.hpp"
 
+// need to include a global debug define 
+#define DEBUG false
+
 using namespace std;
 
 namespace shade {
@@ -109,17 +112,39 @@ namespace shade {
           }
 
           // shade radio icon (btn left)
-          // todo
+          GuiDrawText("ttv/Shade_Radio", { 10, ch + 25, 200, 25}, GuiTextAlignment::GUI_TEXT_ALIGN_LEFT, GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+
+          // add a debug timer in top right and reset when change viz?
+          // also add fps avg, min, max metrics
+          m_vizTimer += deltaTime;
+          if(DEBUG) GuiDrawText(to_string(m_vizTimer).c_str(), { w - 100, 30, 100, 25}, GuiTextAlignment::GUI_TEXT_ALIGN_LEFT, GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
           // visualizations "dropdown"
           m_showVizOptions = GuiToggle({w - 400 , ch, 200, 50}, m_selectedViz[1].c_str(), m_showVizOptions);
           // load these from an ini l8r
-          string options[5][2] = { 
+          string options[12][2] = { 
             {"linewaves.fs", "line waves" },
             {"starfield.fs", "star field"},
-            {"clouds.fs", "cloud tunnel"},
-            {"kifs.fs", "koch tunnel"},
-            {"idkyet.fs", "WIP"}
+            {"clouds.fs", "cloud tunnel"}, // testing only
+            {"kifs_tree.fs", "KIFS tree"},
+            {"abstractVibes.fs", "abstract vibes"},
+            {"wavyPipes.fs", "funky hair"},
+            // {"new1.fs", "new 1"},
+            // {"bos.fs", "TBOS"},
+            // {"driveHome.fs", "drive home"},
+            // {"linewaves_v2.fs", "line waves 2"},
+            // {"simple.fs", "simplex"},
+            // {"meshViz.fs", "meshy"},
+            // {"fogCube.fs", "fog cube"},
+            // {"lazerFog.fs", "rave lazers"},
+            // {"mandlebulb.fs", "mandlebulb 1"},
+            // {"mandlebulb_v2.fs", "mandlebulb 2"},
+            {"kifs_eye.fs", "KIFS eye"},
+            {"kifs_dance.fs", "KIFS dance"},
+            {"wavyHighway.fs", "wavy highway"},
+            {"spaceEggs.fs", "space eggs"},
+            {"wavyCircle.fs", "wip 1"}, // WIP
+            {"noisyTerrain.fs", "dancing planet"} // WIP but OK to stream
           };          
           if(m_showVizOptions){
             for(int i = 0; i < sizeof options / sizeof options[0]; ++i){
@@ -131,6 +156,8 @@ namespace shade {
                 EventEmitter::Emit<SetShaderFileEvent>(e);
                 // close options
                 m_showVizOptions = false;
+
+                m_vizTimer = 0.0;
               }
             }
           }
@@ -139,14 +166,16 @@ namespace shade {
 
           // temp placement of viz swapping over time
           if(m_isVizAutoPlaying){
-            int randViz = GetRandomValue(0, 30000);
-            if(randViz < sizeof options / sizeof options[0]){
+            int randViz = GetRandomValue(0, 10000 * sizeof options[0]); // refine random swapping
+            if((m_vizTimer > 15.0) && randViz < sizeof options / sizeof options[0]){
               if(m_selectedViz[0] != options[randViz][0]){
                 m_selectedViz[0] = options[randViz][0];
                 m_selectedViz[1] = options[randViz][1];
                 SetShaderFileEvent e = { options[randViz][0] };
                 EventEmitter::Emit<SetShaderFileEvent>(e);
               }
+              printf("[SE DEBUG] viz swapped at %s \n", to_string(m_vizTimer).c_str());
+              m_vizTimer = 0.0;
             }
           }          
 
@@ -255,6 +284,8 @@ namespace shade {
 
       virtual AudioPlayerLayer* clone_impl() const override { return new AudioPlayerLayer(*this); }
     private:
+
+      float m_vizTimer = 0.0;
 
   };
 }

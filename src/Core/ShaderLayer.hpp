@@ -10,7 +10,6 @@
 
 using namespace std;
 
-#define GLSL_VERSION 330
 #define HOT_RELOAD true
 
 namespace shade {
@@ -37,11 +36,11 @@ namespace shade {
         if(updated.id != GetShaderDefault().id){
           printf("Shader reloading...\n");
           UnloadShader(m_shader);
-          m_shaderFile = filePath;
+          m_shaderFile = string(filePath);
           m_isReactive = isReactive;
           m_shader = updated;
           m_iTime = 0.0;
-          m_modTime = GetFileModTime(m_shaderFile);
+          m_modTime = GetFileModTime(m_shaderFile.c_str());
           m_uniformLocs.clear();
           InitShaderParams(isReactive);
           printf("Shader reloaded\n");
@@ -70,10 +69,10 @@ namespace shade {
       }
 
       void Init(const char* filePath, bool isReactive){
-        m_shaderFile = filePath;
+        m_shaderFile = string(filePath);
         m_isReactive = isReactive;
         m_shader = LoadShader(0, filePath);
-        m_modTime = GetFileModTime(m_shaderFile);
+        m_modTime = GetFileModTime(m_shaderFile.c_str());
         InitShaderParams(isReactive);
 
         EventEmitter::On<SetShaderFileEvent>([&](SetShaderFileEvent e) { 
@@ -122,10 +121,10 @@ namespace shade {
         #ifdef HOT_RELOAD
         m_modTimer += deltaTime;
         if(m_modTimer >= 1.0){
-          long modTime = GetFileModTime(m_shaderFile);
+          long modTime = GetFileModTime(m_shaderFile.c_str());
           if(modTime != m_modTime){
             printf("Shader hot reloading...\n");
-            ReloadShader(m_shaderFile, m_isReactive);
+            ReloadShader(m_shaderFile.c_str(), m_isReactive);
             m_modTime = modTime;
             printf("Shader hot reload finished\n");
           }
@@ -167,7 +166,7 @@ namespace shade {
       bool m_isReactive = false;
 
       // hot reload ish
-      const char* m_shaderFile = nullptr;
+      string m_shaderFile = "";
       long m_modTime = 0;
       float m_modTimer = 0;
   };
